@@ -15,11 +15,9 @@
  */
 package com.google.cloud.genomics.utils;
 
+import com.google.api.client.googleapis.batch.BatchRequest;
 import com.google.api.services.genomics.Genomics;
-import com.google.api.services.genomics.model.ReferenceBound;
-import com.google.api.services.genomics.model.SearchReadsRequest;
-import com.google.api.services.genomics.model.SearchVariantsRequest;
-import com.google.api.services.genomics.model.VariantSet;
+import com.google.api.services.genomics.model.*;
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
@@ -119,20 +117,38 @@ public class Contig implements Serializable {
   }
 
   public static List<Contig> getContigsInVariantSet(Genomics genomics, String variantSetId,
-      boolean excludeXY) throws IOException {
+                                                    boolean excludeXY) throws IOException {
     List<Contig> contigs = Lists.newArrayList();
 
     VariantSet variantSet = genomics.variantsets().get(variantSetId).execute();
     for (ReferenceBound bound : variantSet.getReferenceBounds()) {
       String contig = bound.getReferenceName().toLowerCase();
-      if (excludeXY && (contig.contains("x") || contig.contains("y"))) {
-        // X and Y skew analysis results
+      if (excludeXY && isXY(contig)) {  // X and Y skew analysis results
         continue;
       }
 
       contigs.add(new Contig(bound.getReferenceName(), 0, bound.getUpperBound()));
     }
+    return contigs;
+  }
 
+  private static boolean isXY(String contig) {
+    return contig.contains("x") || contig.contains("y");
+  }
+
+  public static List<Contig> lookupContigs(Genomics genomics, String referenceSetId,
+                                           boolean excludeXY) throws IOException {
+    List<Contig> contigs = Lists.newArrayList();
+    ReferenceSet referenceSet = genomics.referencesets().get(referenceSetId).execute();
+    for (String referenceId : referenceSet.getReferenceIds()) {
+      //TODO: batch up the reference lookups.
+      Reference ref = genomics.references().get(referenceId).execute();
+      String contig = ref.getName().toLowerCase();
+      if (excludeXY && isXY(contig)) {  // X and Y skew analysis results
+        continue;
+      }
+      contigs.add(new Contig(ref.getName(), 0, ref.getLength()));
+    }
     return contigs;
   }
 }
