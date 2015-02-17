@@ -44,17 +44,19 @@ public class Contig implements Serializable {
   public static final String BRCA1 = "17:41196311:41277499";
 
   public final String referenceName;
+  public final String referenceId;
   public final long start;
   public final long end;
 
-  public Contig(String referenceName, long start, long end) {
+  public Contig(String referenceName, String referenceId, long start, long end) {
     this.referenceName = requireNonNull(referenceName);
+    this.referenceId = requireNonNull(referenceId);
     this.start = start;
     this.end = end;
   }
   @Override
   public int hashCode() {
-    return hash(referenceName, start, end);
+    return hash(referenceName, referenceId, start, end);
   }
 
   @Override
@@ -63,12 +65,12 @@ public class Contig implements Serializable {
       return false;
     }
     Contig c = (Contig) obj;
-    return equal(referenceName, c.referenceName) && equal(start, c.start) && equal(end, c.end);
+    return equal(referenceName, c.referenceName) && equal(referenceId, c.referenceId) && equal(start, c.start) && equal(end, c.end);
   }
 
   @Override
   public String toString() {
-    return referenceName + ':' + start + ':' + end;
+    return referenceName + '(' + referenceId + ')' + ':' + start + ':' + end;
   }
 
   public List<Contig> getShards(long numberOfBasesPerShard) {
@@ -78,7 +80,7 @@ public class Contig implements Serializable {
       long shardStart = start + (i * numberOfBasesPerShard);
       long shardEnd = Math.min(end, shardStart + numberOfBasesPerShard);
 
-      shards.add(new Contig(referenceName, shardStart, shardEnd));
+      shards.add(new Contig(referenceName, referenceId, shardStart, shardEnd));
     }
     Collections.shuffle(shards); // Shuffle shards for better backend performance
     return shards;
